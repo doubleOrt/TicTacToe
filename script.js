@@ -1,7 +1,6 @@
 window.onload = start;
 
 function start() {
-
   const players = [
     {
       char: '&#10005;',
@@ -26,19 +25,24 @@ function start() {
 
   Array.from(ticTacToeBoard.getElementsByTagName('td'))
     .forEach(
-      el => el.addEventListener( 'click', e => ticTacToe.selectCell(e.target) )
+      (el) => el.addEventListener(
+        'click',
+        (e) => ticTacToe.selectCell(e.target)
+      )
     );
 
 
   ticTacToe.registerTurnHandler(
-    player => {
-        turnText.innerHTML = 'It\'s ' + (player['id'] === 1 ? 'X' : 'O') + '\'s turn.';
+    (player) => {
+      turnText.innerHTML =
+        'It\'s ' + (player['id'] === 1 ? 'X' : 'O') + '\'s turn.';
     }
   );
 
-  
+
   ticTacToe.registerWinHandler(
-    player => turnText.innerHTML = (player['id'] === 1 ? 'X' : 'O') + ' won the game.'
+    (player) => turnText.innerHTML =
+      (player['id'] === 1 ? 'X' : 'O') + ' won the game.'
   );
 
   ticTacToe.registerDrawHandler(
@@ -50,5 +54,4 @@ function start() {
     ticTacToe.reset();
     turnText.innerHTML = 'It\'s X\'s turn.';
   });
-
 }

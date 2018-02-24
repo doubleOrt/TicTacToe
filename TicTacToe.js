@@ -71,7 +71,6 @@ const TicTacToe = (function() {
     return playerCopy;
   };
 
-
   /* calculates the 'num' attribute for a cell, which represents
   the cell's position in the grid. */
   const getCellPosition = function getCellPosition(el) {
@@ -133,14 +132,14 @@ const TicTacToe = (function() {
       throw new Error('You have to pass an integer for the "size" argument.');
     } else if ( !Array.isArray(players) || !players.length >= 2 ) {
       throw new Error(
-        `You have to pass an array that has at least 2 elements for the 
+        `You have to pass an array that has at least 2 elements for the
         "players" argument.`
       );
     } else {
       players.forEach( (player) => {
         if ( !(typeof player.char === 'string') ) {
           throw new Error(
-            `Each element in the "players" argument must have a string 
+            `Each element in the "players" argument must have a string
             "char" property.`
           );
         }
@@ -238,26 +237,25 @@ const TicTacToe = (function() {
     this._gameResolved = false;
   };
 
-  TicTacToe.prototype.registerTurnHandler = 
+  TicTacToe.prototype.registerTurnHandler =
     function registerTurnHandler(handler) {
       this._turnHandler = handler;
     };
 
-  TicTacToe.prototype.registerWinHandler = 
+  TicTacToe.prototype.registerWinHandler =
     function registerWinHandler(handler) {
       this._winHandler = handler;
     };
 
-  TicTacToe.prototype.registerDrawHandler = 
+  TicTacToe.prototype.registerDrawHandler =
     function registerDrawHandler(handler) {
       this._drawHandler = handler;
     };
 
-  TicTacToe.prototype.registerSelectHandler = 
+  TicTacToe.prototype.registerSelectHandler =
     function registerDrawHandler(handler) {
       this._selectHandler = handler;
     };
-
 
   return TicTacToe;
 })();
