@@ -4,6 +4,12 @@ const TicTacToe = (function() {
     return Array.from(el.parentNode.children).indexOf(el);
   };
 
+  const mapFunctionToAsync = function mapFunctionToAsync(func) {
+    return function(...args) {
+      setTimeout( func, 0, ...args );
+    };
+  };
+
   const checkMovesHasCombination =
     function checkMovesHasCombination(combination, moves) {
       return combination.every((num) => moves.includes(num));
@@ -85,6 +91,14 @@ const TicTacToe = (function() {
     this.player = null;
   };
 
+  Cell.clearAll = function clearAll(cells) {
+    cells.forEach((cell) => cell.clear());
+  };
+
+  Cell.allOccupied = function allOccupied(cells) {
+    return cells.every( (cell) => cell.player );
+  };
+
   Cell.prototype.getNumAttribute = function getNumAttribute() {
     return parseInt(this.el.getAttribute('data-num'));
   };
@@ -127,16 +141,16 @@ const TicTacToe = (function() {
   * to be added to cells occupied by a player).
   *
   */
-  const TicTacToe = function TicTacToe(size, players) {
-    if ( !Number.isInteger(size) ) {
+  const TicTacToe = function TicTacToe(size0, players0) {
+    if ( !Number.isInteger(size0) ) {
       throw new Error('You have to pass an integer for the "size" argument.');
-    } else if ( !Array.isArray(players) || !players.length >= 2 ) {
+    } else if ( !Array.isArray(players0) || !players0.length >= 2 ) {
       throw new Error(
         `You have to pass an array that has at least 2 elements for the
         "players" argument.`
       );
     } else {
-      players.forEach( (player) => {
+      players0.forEach( (player) => {
         if ( !(typeof player.char === 'string') ) {
           throw new Error(
             `Each element in the "players" argument must have a string
@@ -146,116 +160,115 @@ const TicTacToe = (function() {
       } );
     }
 
-    this.size = size;
-    this.players = players.map( (player) => mapPlayer(player) );
-    this._playersInitial = players;
-
-    this._winningCombinations = getWinningCombinations(this.size);
-    this._gameResolved = false;
-
-    this._table = generateTable(this.size);
-    this._cells = Array.from( this._table.getElementsByTagName('td') )
+    const size = size0;
+    let players = players0.map( (player) => mapPlayer(player) );
+    const playersInitial = players.slice();
+    const winningCombinations = getWinningCombinations(size);
+    let gameResolved = false;
+    const table = generateTable(size);
+    const cells = Array.from( table.getElementsByTagName('td') )
       .map( (el) => new Cell( el, getCellPosition(el) ) );
-    this._cells.clearAll = function clearAll() {
-      this.forEach((cell) => cell.clear());
-    };
-    this._cells.allOccupied = function allOccupied() {
-      return this.every( (cell) => cell.player );
+
+    const events = {
+      'select': null,
+      'turn': null,
+      'win': null,
+      'draw': null,
     };
 
-    this._selectHandler = null;
-    this._turnHandler = null;
-    this._winHandler = null;
-    this._drawHandler = null;
-  };
+    for ( let key in events ) {
+      if ( events.hasOwnProperty(key) ) {
+        let handler = events[key];
+        Object.defineProperty(events, key, {
+          get() {
+            return handler;
+          },
+          set(newHandler) {
+            /* The handlers should be called asynchronously so they don't
+              terminate our code as well in case they throw an exception */
+            handler = mapFunctionToAsync( newHandler );
+          },
+          enumerable: true,
+          configurable: false,
+        });
+      }
+    }
 
-  // checks if a player has won, if they have, it returns that player's object.
-  TicTacToe.prototype._checkForWin = function checkForWin() {
-    return this.players.find(
-      (player) => this._winningCombinations.some(
-        (combination) => checkMovesHasCombination(
-          combination, player.moves
+    /* checks if a player has won, if they have, it returns that player's
+      object. */
+    const checkForWin = function checkForWin() {
+      return players.find(
+        (player) => winningCombinations.some(
+          (combination) => checkMovesHasCombination(
+            combination, player.moves
+          )
         )
-      ),
-      this
-    );
-  };
+      );
+    };
 
-  // checks if the game is a draw (draw == all cells occupied && no one has won)
-  TicTacToe.prototype._checkForDraw = function checkForDraw() {
-    return this._cells.allOccupied() && !this._checkForWin();
-  };
+    /* checks if the game is a draw (draw == all cells occupied && no one
+      has won) */
+    const checkForDraw = function checkForDraw() {
+      return Cell.allOccupied(cells) && !checkForWin();
+    };
 
-  TicTacToe.prototype._resolveGame = function resolveGame() {
-    const winner = this._checkForWin();
-    if (winner) {
-      if ( typeof this._winHandler === 'function' ) {
-        this._winHandler(winner);
+    const resolveGame = function resolveGame() {
+      const winner = checkForWin();
+      if ( winner && typeof events['win'] === 'function' ) {
+        events['win'](winner);
+      } else if ( checkForDraw() && typeof events['draw'] === 'function' ) {
+        events['draw']();
+      } else {
+        return;
       }
-      this._gameResolved = true;
-    } else if ( this._checkForDraw() ) {
-      if ( typeof this._drawHandler === 'function') {
-        this._drawHandler();
+      gameResolved = true;
+    };
+
+    const handlePlayerTurns = function handlePlayerTurns() {
+      players.push( players.shift() );
+      if ( typeof events['turn'] === 'function' && !gameResolved === true ) {
+        events['turn'](players[0]);
       }
-      this._gameResolved = true;
-    }
-  };
+      return players[0];
+    };
 
-  TicTacToe.prototype._handlePlayerTurns = function _handlePlayerTurns() {
-    this.players.push( this.players.shift() );
-    if ( typeof this._turnHandler === 'function'
-      && !this._gameResolved === true ) {
-      this._turnHandler( this.players[0] );
-    }
-    return this.players[0];
-  };
+    const TicTacToe = {};
 
-  TicTacToe.prototype.selectCell = function selectCell(el) {
-    if ( this._gameResolved === true ) {
-      return;
-    }
-    const cell = this._cells.find( (cell) => cell.el === el );
-    if ( cell && cell.select(this.players[0]) ) {
-      this.players[0].moves.push( cell.getNumAttribute() );
-      this._resolveGame();
-      if ( typeof this._selectHandler === 'function' ) {
-        this._selectHandler( el, this.players[0] );
+    TicTacToe.selectCell = function selectCell(el) {
+      if ( gameResolved === true ) {
+        return;
       }
-      this._handlePlayerTurns();
-    }
+      const cell = cells.find( (cell) => cell.el === el );
+      if ( cell && cell.select(players[0]) ) {
+        players[0].moves.push( cell.getNumAttribute() );
+        resolveGame();
+        if ( typeof events['select'] === 'function' ) {
+          events['select'](players[0]);
+        }
+        handlePlayerTurns();
+      }
+    };
+
+    TicTacToe.getBoard = function getBoard() {
+      return table;
+    };
+
+    TicTacToe.reset = function reset() {
+      Cell.clearAll(cells);
+      players = playersInitial.map(
+        (player) => mapPlayer(player)
+      );
+      gameResolved = false;
+    };
+
+    TicTacToe.addEvent = function addEvent(eventName, listener) {
+      if ( events.hasOwnProperty(eventName) && typeof listener === 'function') {
+        events[eventName] = listener;
+      }
+    };
+
+    return TicTacToe;
   };
-
-  TicTacToe.prototype.getBoard = function getBoard() {
-    return this._table;
-  };
-
-  TicTacToe.prototype.reset = function reset() {
-    this._cells.clearAll();
-    this.players = this._playersInitial.map(
-      (player) => mapPlayer(player)
-    );
-    this._gameResolved = false;
-  };
-
-  TicTacToe.prototype.registerTurnHandler =
-    function registerTurnHandler(handler) {
-      this._turnHandler = handler;
-    };
-
-  TicTacToe.prototype.registerWinHandler =
-    function registerWinHandler(handler) {
-      this._winHandler = handler;
-    };
-
-  TicTacToe.prototype.registerDrawHandler =
-    function registerDrawHandler(handler) {
-      this._drawHandler = handler;
-    };
-
-  TicTacToe.prototype.registerSelectHandler =
-    function registerDrawHandler(handler) {
-      this._selectHandler = handler;
-    };
 
   return TicTacToe;
 })();

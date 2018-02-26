@@ -1,6 +1,7 @@
 window.onload = start;
 
 function start() {
+
   const players = [
     {
       char: '&#10005;',
@@ -31,27 +32,28 @@ function start() {
       )
     );
 
-
-  ticTacToe.registerTurnHandler(
+  ticTacToe.addEvent(
+    'turn',
     (player) => {
       turnText.innerHTML =
         'It\'s ' + (player['id'] === 1 ? 'X' : 'O') + '\'s turn.';
     }
   );
 
-
-  ticTacToe.registerWinHandler(
+  ticTacToe.addEvent(
+    'win',
     (player) => turnText.innerHTML =
       (player['id'] === 1 ? 'X' : 'O') + ' won the game.'
   );
 
-  ticTacToe.registerDrawHandler(
+  ticTacToe.addEvent(
+    'draw',
     () => turnText.innerHTML = 'Game Over! It\'s a draw.'
   );
-
 
   resetButton.addEventListener( 'click', () => {
     ticTacToe.reset();
     turnText.innerHTML = 'It\'s X\'s turn.';
   });
+
 }
