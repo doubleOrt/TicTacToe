@@ -1,7 +1,6 @@
 window.onload = start;
 
 function start() {
-
   const players = [
     {
       char: '&#10005;',
@@ -55,5 +54,4 @@ function start() {
     ticTacToe.reset();
     turnText.innerHTML = 'It\'s X\'s turn.';
   });
-
 }

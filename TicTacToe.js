@@ -18,46 +18,22 @@ const TicTacToe = (function() {
   /* returns the winning combinations for the specified table-size in a
   2d array. */
   const getWinningCombinations = function getWinningCombinations(tableSize) {
-    return getHorizontalWinningCombinations(tableSize)
-      .concat( getVerticalWinningCombinations(tableSize) )
-      .concat( getDiagonalWinningCombinations(tableSize) );
+    const combinations = [];
+    const diagonalCombinations = [[], []];
+    for (let i = 0; i < tableSize; i++) {
+      diagonalCombinations[0].push( i + (i * tableSize) );
+      diagonalCombinations[1].push( (tableSize - 1 - i) + (i * tableSize) );
+      const horizontalCombination = [];
+      const verticalCombination = [];
+      for (let a = 0; a < tableSize; a++) {
+        horizontalCombination.push( a + (i * tableSize) );
+        verticalCombination.push( i + (a * tableSize) );
+      }
+      combinations.push(horizontalCombination, verticalCombination);
+    }
+    combinations.push( diagonalCombinations[0], diagonalCombinations[1] );
+    return combinations;
   };
-
-  const getHorizontalWinningCombinations =
-    function getHorizontalWinningCombinations(tableSize) {
-      const combinations = [];
-      for (let i = 0; i < tableSize; i++) {
-        const combination = [];
-        for (let a = 0; a < tableSize; a++) {
-          combination.push( a + (i * tableSize) );
-        }
-        combinations.push(combination);
-      }
-      return combinations;
-    };
-
-  const getVerticalWinningCombinations =
-    function getVerticalWinningCombinations(tableSize) {
-      const combinations = [];
-      for (let i = 0; i < tableSize; i++) {
-        const combination = [];
-        for (let a = 0; a < tableSize; a++) {
-          combination.push( i + (a * tableSize) );
-        }
-        combinations.push(combination);
-      }
-      return combinations;
-    };
-
-  const getDiagonalWinningCombinations =
-    function getDiagonalWinningCombinations(tableSize) {
-      const combinations = [[], []];
-      for (let i = 0; i < tableSize; i++) {
-        combinations[0].push( i + (i * tableSize) );
-        combinations[1].push( (tableSize - 1 - i) + (i * tableSize) );
-      }
-      return combinations;
-    };
 
   // generates an HTML table of the specified size (size X size)
   const generateTable = function generateTable(size) {
@@ -77,35 +53,18 @@ const TicTacToe = (function() {
     return playerCopy;
   };
 
-  /* calculates the 'num' attribute for a cell, which represents
-  the cell's position in the grid. */
-  const getCellPosition = function getCellPosition(el) {
-    return elementIndex(el) + (
-      elementIndex(el.parentNode) * el.parentNode.children.length
-    );
-  };
-
   const Cell = function Cell(el, num) {
     this.el = el;
-    this.setNumAttribute(num);
+    this.num = num;
     this.player = null;
   };
 
-  Cell.clearAll = function clearAll(cells) {
-    cells.forEach((cell) => cell.clear());
-  };
-
-  Cell.allOccupied = function allOccupied(cells) {
-    return cells.every( (cell) => cell.player );
-  };
-
-  Cell.prototype.getNumAttribute = function getNumAttribute() {
-    return parseInt(this.el.getAttribute('data-num'));
-  };
-
-  Cell.prototype.setNumAttribute = function setNumAttribute(num) {
-    this.el.setAttribute('data-num', num);
-    return this.el;
+  /* calculates the 'num' attribute for a cell, which represents
+  the cell's position in the grid. */
+  Cell.getNum = function getNum(el) {
+    return elementIndex(el) + (
+      elementIndex(el.parentNode) * el.parentNode.children.length
+    );
   };
 
   Cell.prototype.select = function select(player) {
@@ -122,43 +81,42 @@ const TicTacToe = (function() {
   };
 
   Cell.prototype.clear = function clear() {
-    // if already empty, return.
+    // if already empty, return false.
     if (!this.player) {
-      return;
+      return false;
     }
     this.el.innerHTML = '';
     if ( this.player.className ) {
       this.el.classList.remove( this.player.className );
     }
     this.player = null;
+    return true;
   };
 
   /*
   * 'size': an integer representing the number of both the columns and rows of
   * the game grid.
   * 'players': an object that has a 'char' (specifying the symbol to mark cells
-  * with for the player) and a 'className' property (specifying the className
-  * to be added to cells occupied by a player).
-  *
+  * with for the player) and an optional 'className' property (specifying the
+  * className to be added to cells occupied by a player).
   */
   const TicTacToe = function TicTacToe(size0, players0) {
     if ( !Number.isInteger(size0) ) {
-      throw new Error('You have to pass an integer for the "size" argument.');
+      throw Error('Invalid arguments passed! Please see the documentation.');
     } else if ( !Array.isArray(players0) || !players0.length >= 2 ) {
-      throw new Error(
-        `You have to pass an array that has at least 2 elements for the
-        "players" argument.`
-      );
+      throw Error('Invalid arguments passed! Please see the documentation.');
     } else {
       players0.forEach( (player) => {
         if ( !(typeof player.char === 'string') ) {
-          throw new Error(
-            `Each element in the "players" argument must have a string
-            "char" property.`
+          throw Error(
+            'Invalid arguments passed! Please see the documentation.'
           );
         }
       } );
     }
+
+    // public API object
+    const TicTacToeAPI = {};
 
     const size = size0;
     let players = players0.map( (player) => mapPlayer(player) );
@@ -167,7 +125,7 @@ const TicTacToe = (function() {
     let gameResolved = false;
     const table = generateTable(size);
     const cells = Array.from( table.getElementsByTagName('td') )
-      .map( (el) => new Cell( el, getCellPosition(el) ) );
+      .map( (el) => new Cell( el, Cell.getNum(el) ) );
 
     const events = {
       'select': null,
@@ -185,11 +143,10 @@ const TicTacToe = (function() {
           },
           set(newHandler) {
             /* The handlers should be called asynchronously so they don't
-              terminate our code as well in case they throw an exception */
+              break our code in case they throw an exception */
             handler = mapFunctionToAsync( newHandler );
           },
           enumerable: true,
-          configurable: false,
         });
       }
     }
@@ -209,7 +166,7 @@ const TicTacToe = (function() {
     /* checks if the game is a draw (draw == all cells occupied && no one
       has won) */
     const checkForDraw = function checkForDraw() {
-      return Cell.allOccupied(cells) && !checkForWin();
+      return cells.every( (cell) => cell.player ) && !checkForWin();
     };
 
     const resolveGame = function resolveGame() {
@@ -232,15 +189,13 @@ const TicTacToe = (function() {
       return players[0];
     };
 
-    const TicTacToe = {};
-
-    TicTacToe.selectCell = function selectCell(el) {
+    TicTacToeAPI.selectCell = function selectCell(el) {
       if ( gameResolved === true ) {
         return;
       }
       const cell = cells.find( (cell) => cell.el === el );
       if ( cell && cell.select(players[0]) ) {
-        players[0].moves.push( cell.getNumAttribute() );
+        players[0].moves.push( cell.num );
         resolveGame();
         if ( typeof events['select'] === 'function' ) {
           events['select'](players[0]);
@@ -249,25 +204,25 @@ const TicTacToe = (function() {
       }
     };
 
-    TicTacToe.getBoard = function getBoard() {
+    TicTacToeAPI.getBoard = function getBoard() {
       return table;
     };
 
-    TicTacToe.reset = function reset() {
-      Cell.clearAll(cells);
+    TicTacToeAPI.reset = function reset() {
+      cells.forEach((cell) => cell.clear());
       players = playersInitial.map(
         (player) => mapPlayer(player)
       );
       gameResolved = false;
     };
 
-    TicTacToe.addEvent = function addEvent(eventName, listener) {
+    TicTacToeAPI.addEvent = function addEvent(eventName, listener) {
       if ( events.hasOwnProperty(eventName) && typeof listener === 'function') {
         events[eventName] = listener;
       }
     };
 
-    return TicTacToe;
+    return TicTacToeAPI;
   };
 
   return TicTacToe;
