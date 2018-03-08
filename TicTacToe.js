@@ -53,18 +53,16 @@ const TicTacToe = (function() {
     return playerCopy;
   };
 
-  const Cell = function Cell(el, num) {
-    this.el = el;
-    this.num = num;
-    this.player = null;
-  };
-
-  /* calculates the 'num' attribute for a cell, which represents
-  the cell's position in the grid. */
-  Cell.getNum = function getNum(el) {
+  const getCellNum = function getCellNum(el) {
     return elementIndex(el) + (
       elementIndex(el.parentNode) * el.parentNode.children.length
     );
+  };
+
+  const Cell = function Cell(el) {
+    this.el = el;
+    this.num = getCellNum(el);
+    this.player = null;
   };
 
   Cell.prototype.select = function select(player) {
@@ -125,7 +123,7 @@ const TicTacToe = (function() {
     let gameResolved = false;
     const table = generateTable(size);
     const cells = Array.from( table.getElementsByTagName('td') )
-      .map( (el) => new Cell( el, Cell.getNum(el) ) );
+      .map( (el) => new Cell(el) );
 
     const events = {
       'select': null,
