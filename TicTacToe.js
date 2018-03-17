@@ -1,7 +1,7 @@
 const TicTacToe = (function() {
   // returns the index of an element within its parent
-  const elementIndex = function elementIndex(el) {
-    return Array.from(el.parentNode.children).indexOf(el);
+  const elementIndex = function elementIndex(elem) {
+    return Array.from( elem.parentNode.children ).indexOf(elem);
   };
 
   const mapFunctionToAsync = function mapFunctionToAsync(func) {
@@ -11,23 +11,23 @@ const TicTacToe = (function() {
   };
 
   const checkMovesHasCombination =
-    function checkMovesHasCombination(combination, moves) {
+    function checkMovesHasCombination(moves, combination) {
       return combination.every((num) => moves.includes(num));
     };
 
   /* returns the winning combinations for the specified table-size in a
   2d array. */
-  const getWinningCombinations = function getWinningCombinations(tableSize) {
+  const getWinningCombinations = function getWinningCombinations(size) {
     const combinations = [];
     const diagonalCombinations = [[], []];
-    for (let i = 0; i < tableSize; i++) {
-      diagonalCombinations[0].push( i + (i * tableSize) );
-      diagonalCombinations[1].push( (tableSize - 1 - i) + (i * tableSize) );
+    for (let i = 0; i < size; i++) {
+      diagonalCombinations[0].push( i + (i * size) );
+      diagonalCombinations[1].push( (size - 1 - i) + (i * size) );
       const horizontalCombination = [];
       const verticalCombination = [];
-      for (let a = 0; a < tableSize; a++) {
-        horizontalCombination.push( a + (i * tableSize) );
-        verticalCombination.push( i + (a * tableSize) );
+      for (let a = 0; a < size; a++) {
+        horizontalCombination.push( a + (i * size) );
+        verticalCombination.push( i + (a * size) );
       }
       combinations.push(horizontalCombination, verticalCombination);
     }
@@ -53,15 +53,15 @@ const TicTacToe = (function() {
     return playerCopy;
   };
 
-  const getCellNum = function getCellNum(el) {
-    return elementIndex(el) + (
-      elementIndex(el.parentNode) * el.parentNode.children.length
+  const getCellNum = function getCellNum(elem) {
+    return elementIndex(elem) + (
+      elementIndex(elem.parentNode) * elem.parentNode.children.length
     );
   };
 
-  const Cell = function Cell(el) {
-    this.el = el;
-    this.num = getCellNum(el);
+  const Cell = function Cell(elem) {
+    this.elem = elem;
+    this.num = getCellNum(elem);
     this.player = null;
   };
 
@@ -71,21 +71,21 @@ const TicTacToe = (function() {
       return false;
     }
     this.player = player;
-    this.el.innerHTML = this.player.char;
+    this.elem.innerHTML = this.player.char;
     if ( this.player.className ) {
-      this.el.classList.add( this.player.className );
+      this.elem.classList.add( this.player.className );
     }
     return true;
   };
 
   Cell.prototype.clear = function clear() {
-    // if already empty, return false.
+    // if already empty, return.
     if (!this.player) {
       return false;
     }
-    this.el.innerHTML = '';
+    this.elem.innerHTML = '';
     if ( this.player.className ) {
-      this.el.classList.remove( this.player.className );
+      this.elem.classList.remove( this.player.className );
     }
     this.player = null;
     return true;
@@ -98,13 +98,13 @@ const TicTacToe = (function() {
   * with for the player) and an optional 'className' property (specifying the
   * className to be added to cells occupied by a player).
   */
-  const TicTacToe = function TicTacToe(size0, players0) {
-    if ( !Number.isInteger(size0) ) {
+  const TicTacToe = function TicTacToe(theSize, thePlayers) {
+    if ( !Number.isInteger(theSize) ) {
       throw Error('Invalid arguments passed! Please see the documentation.');
-    } else if ( !Array.isArray(players0) || !players0.length >= 2 ) {
+    } else if ( !Array.isArray(thePlayers) || !thePlayers.length >= 2 ) {
       throw Error('Invalid arguments passed! Please see the documentation.');
     } else {
-      players0.forEach( (player) => {
+      thePlayers.forEach( (player) => {
         if ( !(typeof player.char === 'string') ) {
           throw Error(
             'Invalid arguments passed! Please see the documentation.'
@@ -116,26 +116,26 @@ const TicTacToe = (function() {
     // public API object
     const TicTacToeAPI = {};
 
-    const size = size0;
-    let players = players0.map( (player) => mapPlayer(player) );
+    const size = theSize;
+    let players = thePlayers.map( (player) => mapPlayer(player) );
     const playersInitial = players.slice();
     const winningCombinations = getWinningCombinations(size);
     let gameResolved = false;
     const table = generateTable(size);
     const cells = Array.from( table.getElementsByTagName('td') )
-      .map( (el) => new Cell(el) );
+      .map( (elem) => new Cell(elem) );
 
-    const events = {
+    const eventListeners = {
       'select': null,
       'turn': null,
       'win': null,
       'draw': null,
     };
 
-    for ( let key in events ) {
-      if ( events.hasOwnProperty(key) ) {
-        let handler = events[key];
-        Object.defineProperty(events, key, {
+    for ( let key in eventListeners ) {
+      if ( eventListeners.hasOwnProperty(key) ) {
+        let handler = eventListeners[key];
+        Object.defineProperty(eventListeners, key, {
           get() {
             return handler;
           },
@@ -155,7 +155,7 @@ const TicTacToe = (function() {
       return players.find(
         (player) => winningCombinations.some(
           (combination) => checkMovesHasCombination(
-            combination, player.moves
+            player.moves, combination
           )
         )
       );
@@ -169,10 +169,10 @@ const TicTacToe = (function() {
 
     const resolveGame = function resolveGame() {
       const winner = checkForWin();
-      if ( winner && typeof events['win'] === 'function' ) {
-        events['win'](winner);
-      } else if ( checkForDraw() && typeof events['draw'] === 'function' ) {
-        events['draw']();
+      if ( winner && typeof eventListeners['win'] === 'function' ) {
+        eventListeners['win'](winner);
+      } else if ( checkForDraw() && typeof eventListeners['draw'] === 'function' ) {
+        eventListeners['draw']();
       } else {
         return;
       }
@@ -181,22 +181,22 @@ const TicTacToe = (function() {
 
     const handlePlayerTurns = function handlePlayerTurns() {
       players.push( players.shift() );
-      if ( typeof events['turn'] === 'function' && !gameResolved === true ) {
-        events['turn'](players[0]);
+      if ( typeof eventListeners['turn'] === 'function' && !gameResolved === true ) {
+        eventListeners['turn'](players[0]);
       }
       return players[0];
     };
 
-    TicTacToeAPI.selectCell = function selectCell(el) {
+    TicTacToeAPI.selectCell = function selectCell(elem) {
       if ( gameResolved === true ) {
         return;
       }
-      const cell = cells.find( (cell) => cell.el === el );
+      const cell = cells.find( (cell) => cell.elem === elem );
       if ( cell && cell.select(players[0]) ) {
         players[0].moves.push( cell.num );
         resolveGame();
-        if ( typeof events['select'] === 'function' ) {
-          events['select'](players[0]);
+        if ( typeof eventListeners['select'] === 'function' ) {
+          eventListeners['select'](players[0]);
         }
         handlePlayerTurns();
       }
@@ -215,8 +215,8 @@ const TicTacToe = (function() {
     };
 
     TicTacToeAPI.addEvent = function addEvent(eventName, listener) {
-      if ( events.hasOwnProperty(eventName) && typeof listener === 'function') {
-        events[eventName] = listener;
+      if ( eventListeners.hasOwnProperty(eventName) && typeof listener === 'function') {
+        eventListeners[eventName] = listener;
       }
     };
 
